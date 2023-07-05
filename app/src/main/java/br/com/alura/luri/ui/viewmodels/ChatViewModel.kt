@@ -1,6 +1,7 @@
 package br.com.alura.luri.ui.viewmodels
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.alura.luri.models.Message
@@ -28,14 +29,18 @@ class ChatViewModel : ViewModel() {
     val uiState = _uiState.asStateFlow()
 
     fun send(text: String) {
-        val botMessage = MutableStateFlow<Message?>(null)
+        val botMessage = mutableStateOf(
+            Message(text = "", false)
+        )
         viewModelScope.launch {
-            sendToOpenIA(text, botMessage)
+            sendToOpenIA(text, onPhraseChange = { newPhrase ->
+                botMessage.value = botMessage.value.copy(text = newPhrase)
+            })
         }
         _uiState.update { currentState ->
             currentState.copy(
                 messages = currentState.messages +
-                        MutableStateFlow(
+                        mutableStateOf(
                             Message(text = text, isAuthor = true)
                         ) + botMessage
             )
@@ -45,19 +50,17 @@ class ChatViewModel : ViewModel() {
     @OptIn(BetaOpenAI::class)
     private suspend fun sendToOpenIA(
         text: String,
-        botMessage: MutableStateFlow<Message?>
+        onPhraseChange: (String) -> Unit,
     ) {
         var phrase = ""
         val request = createRequest(text)
         val chatCompletionChunk = openAI.chatCompletions(request)
-        chatCompletionChunk.collect { chatCompletionChunk ->
-            chatCompletionChunk.choices.forEach { chatChunk ->
+        chatCompletionChunk.collect {
+            it.choices.forEach { chatChunk ->
                 chatChunk.delta?.content?.let { text ->
                     phrase += text
                 }
-                botMessage.update {
-                    it?.copy(text = phrase) ?: Message(text = phrase, false)
-                }
+                onPhraseChange(phrase)
             }
         }
     }

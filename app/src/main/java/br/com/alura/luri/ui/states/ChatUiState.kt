@@ -1,8 +1,8 @@
 package br.com.alura.luri.ui.states
 
+import androidx.compose.runtime.State
 import br.com.alura.luri.models.Message
-import kotlinx.coroutines.flow.StateFlow
 
 data class ChatUiState(
-    val messages: List<StateFlow<Message?>> = emptyList()
+    val messages: List<State<Message>> = emptyList()
 )

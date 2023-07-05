@@ -52,20 +52,21 @@ fun ChatScreen(
     }
     val lazyListState = rememberLazyListState()
     val messages = uiState.messages
-    LaunchedEffect(messages) {
-        if (messages.lastIndex > -1) {
-            lazyListState.animateScrollToItem(messages.lastIndex)
-        }
-    }
     Column(verticalArrangement = Arrangement.SpaceBetween) {
         LazyColumn(Modifier.weight(1f), lazyListState) {
-            items(messages) {
-                it.collectAsState(initial = null).value?.let { message ->
-                    ChatMessage(
-                        text = message.text,
-                        isAuthor = message.isAuthor
-                    )
+            items(messages) { messageState ->
+                val message = messageState.value
+                LaunchedEffect(message) {
+                    if (messages.lastIndex > -1) {
+                        lazyListState.animateScrollToItem(
+                            messages.lastIndex + 1
+                        )
+                    }
                 }
+                ChatMessage(
+                    text = message.text,
+                    isAuthor = message.isAuthor
+                )
             }
         }
         Row(
