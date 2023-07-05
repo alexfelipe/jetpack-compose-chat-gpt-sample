@@ -27,23 +27,10 @@ class ChatViewModel : ViewModel() {
     private val chatMessages = mutableListOf<ChatMessage>()
     val uiState = _uiState.asStateFlow()
 
-    @OptIn(BetaOpenAI::class)
     fun send(text: String) {
-        val request = createRequest(text)
-        val chatCompletionChunk = openAI.chatCompletions(request)
         val botMessage = MutableStateFlow<Message?>(null)
         viewModelScope.launch {
-            var phrase = ""
-            chatCompletionChunk.collect { chatCompletionChunk ->
-                chatCompletionChunk.choices.forEach { chatChunk ->
-                    chatChunk.delta?.content?.let { text ->
-                        phrase += text
-                    }
-                    botMessage.update {
-                        it?.copy(text = phrase) ?: Message(text = phrase, false)
-                    }
-                }
-            }
+            sendToOpenIA(text, botMessage)
         }
         _uiState.update { currentState ->
             currentState.copy(
@@ -52,6 +39,26 @@ class ChatViewModel : ViewModel() {
                             Message(text = text, isAuthor = true)
                         ) + botMessage
             )
+        }
+    }
+
+    @OptIn(BetaOpenAI::class)
+    private suspend fun sendToOpenIA(
+        text: String,
+        botMessage: MutableStateFlow<Message?>
+    ) {
+        var phrase = ""
+        val request = createRequest(text)
+        val chatCompletionChunk = openAI.chatCompletions(request)
+        chatCompletionChunk.collect { chatCompletionChunk ->
+            chatCompletionChunk.choices.forEach { chatChunk ->
+                chatChunk.delta?.content?.let { text ->
+                    phrase += text
+                }
+                botMessage.update {
+                    it?.copy(text = phrase) ?: Message(text = phrase, false)
+                }
+            }
         }
     }
 
