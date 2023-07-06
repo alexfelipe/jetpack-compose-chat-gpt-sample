@@ -4,21 +4,36 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import br.com.alura.luri.ui.components.OpenAiKeyDialog
 import br.com.alura.luri.ui.screens.ChatScreen
-import br.com.alura.luri.ui.states.ChatUiState
 import br.com.alura.luri.ui.theme.LuriTheme
+import br.com.alura.luri.ui.theme.botBackgroundColor
+import br.com.alura.luri.ui.viewmodels.AppViewModel
 import br.com.alura.luri.ui.viewmodels.ChatViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -27,12 +42,51 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val viewModel by viewModels<ChatViewModel>()
-                    val uiState by viewModel.uiState
-                        .collectAsState(initial = ChatUiState())
-                    ChatScreen(uiState, onSendMessage = {
-                        viewModel.send(it)
-                    })
+                    val appViewModel by viewModels<AppViewModel> { AppViewModel.Factory }
+                    val chatViewModel by viewModels<ChatViewModel> { ChatViewModel.Factory }
+                    val chatUiState by chatViewModel
+                        .uiState.collectAsState()
+                    val appUiState by appViewModel
+                        .uiState.collectAsState()
+                    val scope = rememberCoroutineScope()
+                    if (appUiState.isOpenIaDialogOpened) {
+                        OpenAiKeyDialog(onSaveKey = { key ->
+                            scope.launch {
+                                appViewModel.saveOpenIaKey(key)
+                            }
+                        }, onDismissRequest = {
+                            appViewModel.closeOpenIaDialogConfig()
+                        })
+                    }
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {}, actions = {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Settings icon",
+                                        Modifier
+                                            .padding(8.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                appViewModel.openOpenIaDialogConfig()
+                                            },
+                                        tint = Color.White
+                                    )
+                                },
+                                colors = TopAppBarDefaults
+                                    .topAppBarColors(containerColor = botBackgroundColor)
+                            )
+                        }
+                    ) {
+                        ChatScreen(
+                            chatUiState,
+                            onSendMessage = { message ->
+                                chatViewModel.send(message)
+                            },
+                            Modifier.padding(it)
+                        )
+                    }
                 }
             }
         }

@@ -4,5 +4,6 @@ import androidx.compose.runtime.State
 import br.com.alura.luri.models.Message
 
 data class ChatUiState(
-    val messages: List<State<Message>> = emptyList()
+    val messages: List<State<Message>> = emptyList(),
+    val isOpenOpenIaDialog: Boolean = false
 )

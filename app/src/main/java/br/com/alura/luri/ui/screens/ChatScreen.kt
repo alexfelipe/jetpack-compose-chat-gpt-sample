@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -45,14 +46,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatScreen(
     uiState: ChatUiState,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var userInput by remember {
         mutableStateOf("")
     }
     val lazyListState = rememberLazyListState()
     val messages = uiState.messages
-    Column(verticalArrangement = Arrangement.SpaceBetween) {
+    Column(
+        modifier,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
         LazyColumn(Modifier.weight(1f), lazyListState) {
             items(messages) { messageState ->
                 val message = messageState.value
@@ -86,10 +91,21 @@ fun ChatScreen(
                 },
                 shape = RoundedCornerShape(20.dp),
             )
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val scope = rememberCoroutineScope()
             Box(
                 modifier = Modifier
                     .padding(8.dp)
+                    .clip(CircleShape)
                     .size(50.dp)
+                    .clickable {
+                        scope.launch {
+                            keyboardController?.hide()
+                            delay(100)
+                            onSendMessage(userInput)
+                            userInput = ""
+                        }
+                    }
                     .fillMaxHeight()
                     .background(
                         authorBackgroundColor,
@@ -97,20 +113,11 @@ fun ChatScreen(
                     )
                     .padding(8.dp)
             ) {
-                val keyboardController = LocalSoftwareKeyboardController.current
-                val scope = rememberCoroutineScope()
+
                 Icon(
                     Icons.Default.Send, contentDescription = "send icon",
                     Modifier
                         .align(Alignment.Center)
-                        .clickable {
-                            scope.launch {
-                                keyboardController?.hide()
-                                delay(100)
-                                onSendMessage(userInput)
-                                userInput = ""
-                            }
-                        }
                 )
             }
         }
