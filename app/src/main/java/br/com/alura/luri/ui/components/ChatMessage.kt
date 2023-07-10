@@ -48,3 +48,5 @@ fun ChatMessage(text: String, isAuthor: Boolean = false) {
     }
 
 }
+
+

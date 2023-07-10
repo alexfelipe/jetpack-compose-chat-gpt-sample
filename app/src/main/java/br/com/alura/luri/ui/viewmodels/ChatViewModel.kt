@@ -17,6 +17,7 @@ import br.com.alura.luri.LuriApplication
 import br.com.alura.luri.database.OPEN_AI_KEY
 import br.com.alura.luri.database.dataStore
 import br.com.alura.luri.models.Message
+import br.com.alura.luri.ui.states.ChatError
 import br.com.alura.luri.ui.states.ChatUiState
 import com.aallam.openai.api.BetaOpenAI
 import com.aallam.openai.api.chat.ChatCompletionRequest
@@ -24,6 +25,7 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -39,7 +41,8 @@ class ChatViewModel(
     private var openAI: OpenAI? = null
 
     @OptIn(BetaOpenAI::class)
-    private val chatMessages = mutableListOf<ChatMessage>()
+    private val chatMessages =
+        mutableListOf<ChatMessage>(ChatMessage(role = ChatRole.System, SYSTEM_MESSAGE))
     val uiState = _uiState.asStateFlow()
 
     init {
@@ -54,15 +57,31 @@ class ChatViewModel(
     }
 
 
-
     fun send(text: String) {
         val botMessage = mutableStateOf(
             Message(text = "", false)
         )
         viewModelScope.launch {
-            sendToOpenIA(text, onPhraseChange = { newPhrase ->
-                botMessage.value = botMessage.value.copy(text = newPhrase)
-            })
+            try {
+                sendToOpenIA(text, onPhraseChange = { newPhrase ->
+                    botMessage.value = botMessage.value.copy(text = newPhrase)
+                })
+            } catch (e: Exception) {
+                _uiState.update { currentState ->
+                    currentState.copy(
+                            messages = currentState.messages -
+                                    currentState.messages.last(),
+                    error = ChatError("Falha ao gerar mensagem", e)
+                    )
+                }
+                delay(3000)
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        error = null
+                    )
+                }
+            }
+
         }
         _uiState.update { currentState ->
             currentState.copy(
@@ -123,3 +142,12 @@ class ChatViewModel(
 
 }
 
+private val SYSTEM_MESSAGE = """
+    Você vai ser um gerador de postagens para engajar a comunidade de tecnologia.
+
+As postagens deve ter no máximo 255 caracteres e apenas a seguinte tag #AlexDev
+
+A linguagem deve ser descontraída e objetiva, focando em informar o máximo possível com menos palavras de maneira informal.
+
+Você deve apenas responder com a postagem com base no texto de entrada.
+""".trimIndent()

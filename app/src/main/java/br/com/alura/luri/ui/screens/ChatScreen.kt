@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,7 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,13 +37,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.dp
+import br.com.alura.luri.models.Message
 import br.com.alura.luri.ui.components.ChatMessage
+import br.com.alura.luri.ui.states.ChatError
 import br.com.alura.luri.ui.states.ChatUiState
+import br.com.alura.luri.ui.theme.LuriTheme
 import br.com.alura.luri.ui.theme.authorBackgroundColor
 import com.aallam.openai.api.BetaOpenAI
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -58,20 +67,40 @@ fun ChatScreen(
         modifier,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        LazyColumn(Modifier.weight(1f), lazyListState) {
-            items(messages) { messageState ->
-                val message = messageState.value
-                LaunchedEffect(message) {
-                    if (messages.lastIndex > -1) {
-                        lazyListState.animateScrollToItem(
-                            messages.lastIndex + 1
-                        )
+        Box(Modifier.weight(1f)) {
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                lazyListState
+            ) {
+                items(messages) { messageState ->
+                    val message = messageState.value
+                    LaunchedEffect(message) {
+                        if (messages.lastIndex > -1) {
+                            lazyListState.animateScrollToItem(
+                                messages.lastIndex + 1
+                            )
+                        }
                     }
+                    ChatMessage(
+                        text = message.text,
+                        isAuthor = message.isAuthor
+                    )
                 }
-                ChatMessage(
-                    text = message.text,
-                    isAuthor = message.isAuthor
-                )
+            }
+            uiState.error?.let {
+                Box(
+                    Modifier
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Color.Gray,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .padding(8.dp)
+                        .align(Alignment.BottomCenter)
+                ) {
+                    Text(text = uiState.error.message)
+                }
             }
         }
         Row(
@@ -113,13 +142,35 @@ fun ChatScreen(
                     )
                     .padding(8.dp)
             ) {
-
                 Icon(
                     Icons.Default.Send, contentDescription = "send icon",
                     Modifier
                         .align(Alignment.Center)
                 )
             }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ChatScreenWithErrorPreview() {
+    LuriTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.background
+        ) {
+            ChatScreen(uiState = ChatUiState(
+                messages = List(15) {
+                    mutableStateOf(
+                        Message(
+                            LoremIpsum(Random.nextInt(2, 20)).values
+                                .first(),
+                            isAuthor = it % 2 == 0
+                        )
+                    )
+                },
+                error = ChatError("a error message to display", Exception())
+            ), onSendMessage = {})
         }
     }
 }
