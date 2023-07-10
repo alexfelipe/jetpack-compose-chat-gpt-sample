@@ -1,5 +1,7 @@
 package br.com.alura.luri
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,13 +52,26 @@ class MainActivity : ComponentActivity() {
                         .uiState.collectAsState()
                     val scope = rememberCoroutineScope()
                     if (appUiState.isOpenIaDialogOpened) {
-                        OpenAiKeyDialog(onSaveKey = { key ->
-                            scope.launch {
-                                appViewModel.saveOpenIaKey(key)
-                            }
-                        }, onDismissRequest = {
-                            appViewModel.closeOpenIaDialogConfig()
-                        })
+                        OpenAiKeyDialog(
+                            onSaveKeyClick = { key ->
+                                scope.launch {
+                                    appViewModel.saveOpenIaKey(key)
+                                }
+                            }, onDismissRequest = {
+                                appViewModel.closeOpenIaDialogConfig()
+                            }, onGetAKeyClick = {
+                                Intent(
+                                    Intent.ACTION_VIEW, Uri
+                                        .parse("https://platform.openai.com/account/api-keys")
+                                ).run {
+                                    startActivity(this)
+                                }
+                            },
+                            onKeyValueChange = { key ->
+                                appViewModel.checkTheOpenAiKey(key)
+                            },
+                            openAiKeyStatus = appUiState.openAiKeyStatus
+                        )
                     }
                     Scaffold(
                         topBar = {
@@ -75,7 +90,9 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 colors = TopAppBarDefaults
-                                    .topAppBarColors(containerColor = botBackgroundColor)
+                                    .topAppBarColors(
+                                        containerColor = botBackgroundColor
+                                    )
                             )
                         }
                     ) {

@@ -103,7 +103,6 @@ class ChatViewModel(
             role = ChatRole.User,
             content = text
         )
-        Log.i(TAG, "createRequest: $chatMessages")
         return ChatCompletionRequest(
             model = ModelId(modelId),
             messages = chatMessages

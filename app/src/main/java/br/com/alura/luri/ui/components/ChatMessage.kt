@@ -20,9 +20,9 @@ import br.com.alura.luri.ui.theme.ChatTextColor
 @Composable
 fun ChatMessage(text: String, isAuthor: Boolean = false) {
     val (boxAlignment, boxColor) = if (isAuthor) {
-        Pair(Alignment.CenterStart, authorBackgroundColor)
+        Pair(Alignment.CenterEnd, authorBackgroundColor)
     } else {
-        Pair(Alignment.CenterEnd, botBackgroundColor)
+        Pair(Alignment.CenterStart, botBackgroundColor)
     }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         Box(
